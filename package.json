@@ -1,0 +1,16 @@
+{
+  "name": "delta",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Delta.js",
+  "scripts": {
+    "start": "nodemon ./src/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "file-system": "^2.2.2"
+  }
+}
