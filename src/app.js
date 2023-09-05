@@ -1,13 +1,38 @@
-const express = require("express");
-const ProductManager = require("./ProductManager.js");
-const CartManager = require("./CartManager.js");
+import express from "express";
+import exphbs from "express-handlebars";
+import http from "http";
+import { Server } from "socket.io";
+import ProductManager from "./ProductManager.js";
+import CartManager from "./CartManager.js";
+import ProductRouter from "./Routes/ProductRouter.js";
+import { fileURLToPath } from "url";
+import path from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const productManager = new ProductManager();
 const cartManager = new CartManager();
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const server = http.createServer(app);
+const io = new Server(server);
+
+const hbs = exphbs.create({ extname: "hbs" });
+app.engine("hbs", hbs.engine);
+app.set("view engine", "hbs");
+app.set("views", path.join(__dirname, "views"));
+
+app.use("/api", ProductRouter);
+
+app.get("/products", async (req, res) => {
+  const products = await productManager.getProduct();
+  res.render("home", { products });
+});
+
+io.on("connection", (socket) => {
+  console.log("A user connected");
+});
 
 app.get("/products", async (req, res) => {
   const limit = req.query.limit;
@@ -19,72 +44,10 @@ app.get("/products", async (req, res) => {
   res.send(products);
 });
 
-app.get("/products/:productId", async (req, res) => {
-  const productId = parseInt(req.params.productId, 10);
-  const products = await productManager.getProduct();
-
-  const product = products.find(({ id }) => id === productId);
-  if (!product) {
-    return res.status(404).send();
-  }
-  res.send(product);
-});
-
-app.delete("/products/:productId", async (req, res) => {
-  const productId = parseInt(req.params.productId, 10);
-  await productManager.deleteProduct(productId);
-
-  res.send("Producto eliminado exitosamente");
-});
-
-app.put("/products/:productId", async (req, res) => {
-  const productId = parseInt(req.params.productId, 10);
-  const changes = req.body;
-
-  await productManager.updateProduct(productId, changes);
-
-  res.send("Producto actualizado exitosamente");
-});
-
-app.post("/", (req, res) => {
-  const newCart = cartManager.createCart();
-  res.status(201).json(newCart);
-});
-
-app.post("/:cid/product/:pid", async (req, res) => {
-  const cartId = parseInt(req.params.cid, 10);
-  const productId = parseInt(req.params.pid, 10);
-
+app.get("/home", async (req, res) => {
   try {
-    const cart = await cartManager.getCartById(cartId);
-
-    if (!cart) {
-      return res.status(404).send("Cart not found");
-    }
-
-    const product = await productManager.getProductById(productId);
-
-    if (!product) {
-      return res.status(404).send("Product not found");
-    }
-
-    if (!cart.products) {
-      cart.products = [];
-    }
-
-    const existingProduct = cart.products.find(
-      (item) => item.product === productId
-    );
-
-    if (existingProduct) {
-      existingProduct.quantity++;
-    } else {
-      cart.products.push({ product: productId, quantity: 1 });
-    }
-
-    await cartManager.saveCartsToFile();
-
-    res.status(201).json(cart);
+    const products = await productManager.getProduct();
+    res.render("home", { products });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

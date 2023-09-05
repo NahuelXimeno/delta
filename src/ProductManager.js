@@ -1,4 +1,4 @@
-const fs = require("fs");
+import fs from "fs";
 const archivo = "./src/Productos.json";
 
 class ProductManager {
@@ -86,4 +86,4 @@ class ProductManager {
   }
 }
 
-module.exports = ProductManager;
+export default ProductManager;

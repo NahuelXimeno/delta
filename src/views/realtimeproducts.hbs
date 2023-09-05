@@ -1,0 +1,28 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real-Time Products</title>
+  </head>
+  <body>
+    <h1>Real-Time Products</h1>
+    <ul id="productList">
+      {{#each products}}
+        <li>{{this.title}}</li>
+      {{/each}}
+    </ul>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io(); socket.on("productCreated", () => {
+      updateProductList(); }); socket.on("productDeleted", () => {
+      updateProductList(); }); function updateProductList() {
+      fetch("/api/products") .then(response => response.json()) .then(data => {
+      const productList = document.getElementById("productList");
+      productList.innerHTML = ""; data.forEach(product => { const li =
+      document.createElement("li"); li.textContent = product.title;
+      productList.appendChild(li); }); }) .catch(error => console.error(error));
+      }
+    </script>
+  </body>
+</html>
