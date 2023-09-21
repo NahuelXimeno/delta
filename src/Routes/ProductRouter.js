@@ -1,21 +1,30 @@
 import express from "express";
+import { ProductModel } from "../dao/models/product.model.js";
 import { Server } from "socket.io";
-import ProductManager from "../ProductManager.js";
-import CartManager from "../CartManager.js";
 
 const router = express.Router();
-const productManager = new ProductManager();
-const cartManager = new CartManager();
 
 const io = new Server();
 
-router.get("/realtimeproducts", (req, res) => {
-  const products = productManager.getProduct();
-  res.render("realtimeproducts", { products });
+// Ruta para obtener productos en tiempo real
+router.get("/realtimeproducts", async (req, res) => {
+  try {
+    const products = await ProductModel.find().lean();
+
+    // Emitir una actualización en tiempo real a través de Socket.io
+    io.emit("productUpdated", products);
+
+    res.render("realtimeproducts", { products });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
 });
+
+// Obtener todos los productos
 router.get("/products", async (req, res) => {
   try {
-    const products = await productManager.getProduct();
+    const products = await ProductModel.find().lean();
     res.render("home", { products });
   } catch (error) {
     console.error(error);
@@ -23,6 +32,7 @@ router.get("/products", async (req, res) => {
   }
 });
 
+// Crear un nuevo producto
 router.post("/products", async (req, res) => {
   try {
     const {
@@ -50,7 +60,7 @@ router.post("/products", async (req, res) => {
         .json({ error: "Todos los campos son obligatorios." });
     }
 
-    await productManager.addProduct(
+    const newProduct = new ProductModel({
       title,
       description,
       price,
@@ -58,10 +68,10 @@ router.post("/products", async (req, res) => {
       code,
       stock,
       category,
-      status
-    );
+      status,
+    });
 
-    io.emit("productCreated", {});
+    await newProduct.save();
 
     res.status(201).json({ message: "Producto creado exitosamente." });
   } catch (error) {
@@ -70,75 +80,62 @@ router.post("/products", async (req, res) => {
   }
 });
 
+// Obtener un producto por su ID
 router.get("/products/:productId", async (req, res) => {
-  const productId = parseInt(req.params.productId, 10);
-  const products = await productManager.getProduct();
-
-  const product = products.find(({ id }) => id === productId);
-  if (!product) {
-    return res.status(404).send();
-  }
-  res.send(product);
-});
-
-router.delete("/products/:productId", async (req, res) => {
-  const productId = parseInt(req.params.productId, 10);
-  await productManager.deleteProduct(productId);
-  io.emit("productDeleted", { productId });
-  res.send("Producto eliminado exitosamente");
-});
-
-router.put("/products/:productId", async (req, res) => {
-  const productId = parseInt(req.params.productId, 10);
-  const changes = req.body;
-
-  await productManager.updateProduct(productId, changes);
-
-  res.send("Producto actualizado exitosamente");
-});
-
-router.post("/", (req, res) => {
-  const newCart = cartManager.createCart();
-  res.status(201).json(newCart);
-});
-
-router.post("/:cid/product/:pid", async (req, res) => {
-  const cartId = parseInt(req.params.cid, 10);
-  const productId = parseInt(req.params.pid, 10);
+  const productId = req.params.productId;
 
   try {
-    const cart = await cartManager.getCartById(cartId);
-
-    if (!cart) {
-      return res.status(404).send("Cart not found");
-    }
-
-    const product = await productManager.getProductById(productId);
+    const product = await ProductModel.findById(productId).lean();
 
     if (!product) {
-      return res.status(404).send("Product not found");
+      return res.status(404).send("Producto no encontrado");
     }
 
-    if (!cart.products) {
-      cart.products = [];
-    }
-
-    const existingProduct = cart.products.find(
-      (item) => item.product === productId
-    );
-
-    if (existingProduct) {
-      existingProduct.quantity++;
-    } else {
-      cart.products.push({ product: productId, quantity: 1 });
-    }
-
-    await cartManager.saveCartsToFile();
-
-    res.status(201).json(cart);
+    res.json(product);
   } catch (error) {
     console.error(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
+
+// Eliminar un producto por su ID
+router.delete("/products/:productId", async (req, res) => {
+  const productId = req.params.productId;
+
+  try {
+    const deletedProduct = await ProductModel.findByIdAndDelete(productId);
+
+    if (!deletedProduct) {
+      return res.status(404).send("Producto no encontrado");
+    }
+
+    res.send("Producto eliminado exitosamente");
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
+
+// Actualizar un producto por su ID
+router.put("/products/:productId", async (req, res) => {
+  const productId = req.params.productId;
+  const updatedProductData = req.body;
+
+  try {
+    const updatedProduct = await ProductModel.findByIdAndUpdate(
+      productId,
+      updatedProductData,
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).send("Producto no encontrado");
+    }
+
+    res.send("Producto actualizado exitosamente");
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno del servidor." });
   }
 });
 

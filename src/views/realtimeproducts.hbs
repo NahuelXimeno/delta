@@ -12,17 +12,19 @@
       {{/each}}
     </ul>
 
+    <!-- Agrega aquí el código JavaScript para actualizar la lista de productos en tiempo real -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      const socket = io(); socket.on("productCreated", () => {
-      updateProductList(); }); socket.on("productDeleted", () => {
-      updateProductList(); }); function updateProductList() {
-      fetch("/api/products") .then(response => response.json()) .then(data => {
-      const productList = document.getElementById("productList");
-      productList.innerHTML = ""; data.forEach(product => { const li =
-      document.createElement("li"); li.textContent = product.title;
-      productList.appendChild(li); }); }) .catch(error => console.error(error));
-      }
+      const socket = io(); // Escuchar eventos de actualización de productos en
+      tiempo real socket.on("productUpdated", () => { updateProductList(); });
+      function updateProductList() { fetch("/api/products") .then((response) =>
+      response.json()) .then((data) => { const productList =
+      document.getElementById("productList"); productList.innerHTML = "";
+      data.forEach((product) => { const li = document.createElement("li");
+      li.textContent = product.title; productList.appendChild(li); }); })
+      .catch((error) => console.error(error)); } // Actualizar la lista de
+      productos al cargar la página window.addEventListener("DOMContentLoaded",
+      updateProductList);
     </script>
   </body>
 </html>

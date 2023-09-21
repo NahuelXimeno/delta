@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat</title>
+  </head>
+  <body>
+    <h1>Chat</h1>
+    <div id="chat-box">
+      <!-- Aquí se mostrarán los mensajes -->
+    </div>
+    <form id="message-form">
+      <input type="text" id="message-input" placeholder="Escribe tu mensaje" />
+      <button type="submit">Enviar</button>
+    </form>
+
+    <!-- Agrega aquí las referencias a tus librerías externas, como Socket.io y SweetAlert -->
+    <script
+      src="https://cdn.socket.io/4.6.0/socket.io.min.js"
+      integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Coloca aquí el código para configurar Socket.io y gestionar los mensajes -->
+    <script>
+      // Crear una instancia de Socket.io
+      const socket = io();
+
+      // Variable global para almacenar el correo
+      let usuario = "";
+
+      // Verificar si el correo ya se ha ingresado antes
+      if (!usuario) {
+        Swal.fire({
+          title: "Ingresa un correo",
+          input: "text",
+          confirmButtonText: "Ingresar",
+        }).then((result) => {
+          usuario = result.value;
+        });
+      }
+
+      // Manejar el envío de mensajes
+      const caja = document.getElementById("message-input");
+      const contenido = document.getElementById("chat-box");
+
+      caja.addEventListener("change", (e) => {
+        socket.emit("chat message", {
+          correo: usuario,
+          message: e.target.value,
+        });
+
+        // Limpiar el campo de entrada después de enviar el mensaje
+        e.target.value = "";
+      });
+
+      // Mostrar los mensajes entrantes
+      socket.on("chat message", (newMessage) => {
+        // Actualizar el área de chat con el nuevo mensaje
+        const messageDiv = document.createElement("div");
+        messageDiv.classList.add("message");
+        messageDiv.innerHTML = `<strong>${newMessage.correo}:</strong> ${newMessage.message}`;
+        contenido.appendChild(messageDiv);
+      });
+    </script>
+  </body>
+</html>
