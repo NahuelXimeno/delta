@@ -22,13 +22,54 @@ router.get("/realtimeproducts", async (req, res) => {
 });
 
 // Obtener todos los productos
-router.get("/products", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const products = await ProductModel.find().lean();
-    res.render("home", { products });
+    const { limit = 10, page = 1, sort, query } = req.query;
+    const filter = {};
+    if (query) {
+      // Aplicar el filtro de búsqueda
+      filter.category = query;
+    }
+
+    const sortOrder = sort === "desc" ? -1 : 1;
+    const skip = (page - 1) * limit;
+
+    const totalProducts = await ProductModel.countDocuments(filter);
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    const products = await ProductModel.find(filter)
+      .sort({ price: sortOrder })
+      .skip(skip)
+      .limit(Number(limit))
+      .lean();
+
+    const response = {
+      status: "success",
+      payload: products,
+      totalPages,
+      prevPage: page > 1 ? page - 1 : null,
+      nextPage: page < totalPages ? page + 1 : null,
+      page: Number(page),
+      hasPrevPage: page > 1,
+      hasNextPage: page < totalPages,
+      prevLink:
+        page > 1
+          ? `/api/products?limit=${limit}&page=${
+              page - 1
+            }&sort=${sort}&query=${query}`
+          : null,
+      nextLink:
+        page < totalPages
+          ? `/api/products?limit=${limit}&page=${
+              page + 1
+            }&sort=${sort}&query=${query}`
+          : null,
+    };
+
+    res.json(response);
   } catch (error) {
     console.error(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).json({ error: "Error interno del servidor." });
   }
 });
 
@@ -91,7 +132,7 @@ router.get("/products/:productId", async (req, res) => {
       return res.status(404).send("Producto no encontrado");
     }
 
-    res.json(product);
+    res.render("product-details", { product });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error interno del servidor." });

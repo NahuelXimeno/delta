@@ -4,6 +4,7 @@ import http from "http";
 import { Server } from "socket.io";
 import ProductRouter from "./Routes/ProductRouter.js";
 import { ProductModel } from "../src/dao/models/product.model.js";
+import { CartModel } from "../src/dao/models/cart.model.js";
 import CartRouter from "./Routes/CartRouter.js";
 import MessageRouter from "./Routes/MessageRouter.js";
 import { MessageModel } from "../src/dao/models/message.model.js";
@@ -31,6 +32,10 @@ db.on("error", console.error.bind(console, "Error de conexión a MongoDB:"));
 db.once("open", () => {
   console.log("Conexión exitosa a MongoDB");
 });
+app.get("/products.js", (req, res) => {
+  res.setHeader("Content-Type", "application/javascript");
+  res.sendFile(__dirname + "/views/scripts/products.js");
+});
 
 // Configurar Handlebars
 const hbs = exphbs.create({ extname: "hbs" });
@@ -41,6 +46,27 @@ app.set("view engine", "hbs");
 app.use("/api/products", ProductRouter);
 app.use("/api/carts", CartRouter);
 app.use("/api/messages", MessageRouter);
+// Ruta para mostrar la lista de productos
+app.get("/products", async (req, res) => {
+  try {
+    const products = await ProductModel.find().lean();
+    res.render("products", { products });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error interno del servidor");
+  }
+});
+
+// Ruta para mostrar el carrito de compras
+app.get("/cart", async (req, res) => {
+  try {
+    const carts = await CartModel.find().populate("products.product").lean();
+    res.render("cart", { carts });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error interno del servidor");
+  }
+});
 // Ruta para mostrar la vista de productos en tiempo real
 app.get("/realtimeproducts", async (req, res) => {
   try {
@@ -113,6 +139,26 @@ app.get("/chat", async (req, res) => {
   }
 });
 
+app.post("/api/products/add-to-cart/:productId", async (req, res) => {
+  try {
+    // Obtener el ID del producto desde los parámetros de la URL
+    const productId = req.params.productId;
+
+    // Buscar el producto en la base de datos
+    const product = await ProductModel.findById(productId);
+
+    // Verificar si el producto existe y está disponible
+    if (!product || product.stock < 1) {
+      return res
+        .status(404)
+        .json({ error: "Producto no encontrado o agotado." });
+    }
+    res.json({ message: "Producto agregado al carrito con éxito." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
 // Iniciar el servidor
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
