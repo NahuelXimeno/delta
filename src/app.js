@@ -7,15 +7,18 @@ import { ProductModel } from "../src/dao/models/product.model.js";
 import { CartModel } from "../src/dao/models/cart.model.js";
 import CartRouter from "./Routes/CartRouter.js";
 import MessageRouter from "./Routes/MessageRouter.js";
+import SessionRouter from "./Routes/sessionRouter.js";
 import { MessageModel } from "../src/dao/models/message.model.js";
 import { fileURLToPath } from "url";
 import path from "path";
 import mongoose from "mongoose";
+import session from "express-session";
+import MongoStore from "connect-mongo";
 
+const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
@@ -27,6 +30,21 @@ mongoose.connect(
     useUnifiedTopology: true,
   }
 );
+
+// express-session
+app.use(
+  session({
+    store: MongoStore.create({
+      mongoUrl:
+        "mongodb+srv://nahuelxd:ej118BPMqH9QEr09@cluster0.i6cgahd.mongodb.net/?retryWrites=true&w=majority",
+      ttl: 100,
+    }),
+    secret: "3rsaefw3f3q2ed",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "Error de conexión a MongoDB:"));
 db.once("open", () => {
@@ -46,6 +64,8 @@ app.set("view engine", "hbs");
 app.use("/api/products", ProductRouter);
 app.use("/api/carts", CartRouter);
 app.use("/api/messages", MessageRouter);
+app.use("/api", SessionRouter);
+
 // Ruta para mostrar la lista de productos
 app.get("/products", async (req, res) => {
   try {
@@ -94,8 +114,8 @@ app.get("/", async (req, res) => {
 });
 
 // Establecer las rutas para las vistas y archivos estáticos
-app.set("views", path.join(__dirname, "views")); // Utiliza 'path' para obtener la ruta correcta
-app.use(express.static(path.join(__dirname, "public"))); // Utiliza 'path' para obtener la ruta correcta
+app.set("views", path.join(__dirname, "views"));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Escuchar conexiones de Socket.io
 io.on("connection", (socket) => {
