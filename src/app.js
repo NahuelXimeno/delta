@@ -15,6 +15,10 @@ import mongoose from "mongoose";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
+const GitHubStrategy = require("passport-github").Strategy;
+const bcrypt = require("bcrypt");
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -179,6 +183,81 @@ app.post("/api/products/add-to-cart/:productId", async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor." });
   }
 });
+
+// Configura Passport
+passport.use(
+  new LocalStrategy(async (username, password, done) => {
+    const user = await UserModel.findOne({ username });
+    if (!user) return done(null, false);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) return done(null, false);
+    return done(null, user);
+  })
+);
+
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: "f1e8bd1453fb0788068c",
+      clientSecret: "228c2a1afec65d3ce88b22d4b28c6378d4614fcf",
+      callbackURL: "http://localhost:8080/profile",
+    },
+    (accessToken, refreshToken, profile, done) => {}
+  )
+);
+
+passport.serializeUser((user, done) => {
+  done(null, user._id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  const user = await UserModel.findById(id);
+  done(null, user);
+});
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Rutas para autenticación
+app.post(
+  "/login",
+  passport.authenticate("local", {
+    successRedirect: "/profile",
+    failureRedirect: "/login",
+  })
+);
+
+app.post("/signup", async (req, res) => {
+  if (req.session.isLogged) {
+    return res.redirect("/profile");
+  }
+
+  const { username, email, password } = req.body;
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+  const user = await UserModel.create({
+    username,
+    password: hashedPassword,
+    email,
+  });
+
+  req.session.username = user.username;
+  req.session.email = user.email;
+  req.session.isLogged = true;
+
+  res.redirect("/profile");
+});
+
+app.get("/auth/github", passport.authenticate("github"));
+
+app.get(
+  "/auth/github/callback",
+  passport.authenticate("github", {
+    successRedirect: "/profile",
+    failureRedirect: "/login",
+  })
+);
+
 // Iniciar el servidor
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {

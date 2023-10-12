@@ -1,5 +1,8 @@
-<form action="http://localhost:8080/api/login" , method="post">
-  <input name="username" value="username" />
-  <input name="password" value="password" />
-  <button value="submit">Logear</button>
+<h1>Iniciar Sesión</h1>
+<a href="http://localhost:8080/auth/github" class="btn btn-primary">Iniciar
+  Sesión con GitHub</a>
+<form action="http://localhost:8080/api/login" method="post">
+  <input name="username" placeholder="Nombre de usuario" />
+  <input name="password" type="password" placeholder="Contraseña" />
+  <button type="submit">Iniciar Sesión</button>
 </form>
