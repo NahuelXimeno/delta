@@ -14,11 +14,13 @@ import path from "path";
 import mongoose from "mongoose";
 import session from "express-session";
 import MongoStore from "connect-mongo";
+import { Strategy as CurrentStrategy } from "passport-current";
 
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const GitHubStrategy = require("passport-github").Strategy;
 const bcrypt = require("bcrypt");
+const UserModel = require("../src/dao/models/user.model.js");
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +36,12 @@ mongoose.connect(
     useUnifiedTopology: true,
   }
 );
+
+// Middleware para analizar cookies
+app.use(cookieParser());
+
+// Middleware de Passport
+app.use(passport.initialize());
 
 // express-session
 app.use(
@@ -255,6 +263,88 @@ app.get(
   passport.authenticate("github", {
     successRedirect: "/profile",
     failureRedirect: "/login",
+  })
+);
+// Configurar Passport para la estrategia local
+passport.use(
+  new LocalStrategy(async (username, password, done) => {
+    try {
+      const user = await UserModel.findOne({ username });
+      if (!user) return done(null, false, { message: "Usuario no encontrado" });
+
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid)
+        return done(null, false, { message: "Contraseña incorrecta" });
+
+      return done(null, user);
+    } catch (error) {
+      return done(error);
+    }
+  })
+);
+
+passport.serializeUser((user, done) => {
+  done(null, user._id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await UserModel.findById(id);
+    done(null, user);
+  } catch (error) {
+    done(error);
+  }
+});
+
+// Ruta para iniciar sesión con Passport (estrategia local)
+app.post("/login", passport.authenticate("local"), (req, res) => {
+  // En este punto, el usuario se ha autenticado con éxito
+  // Puedes generar un token JWT y enviarlo como respuesta si lo deseas
+  const token = generateJWTToken(req.user);
+  res.json({ token });
+});
+
+// Ruta para registrarse con Passport (estrategia local)
+app.post("/signup", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await UserModel.create({ username, password: hashedPassword });
+
+    // Puedes generar un token JWT y enviarlo como respuesta si lo deseas
+    const token = generateJWTToken(user);
+    res.json({ token });
+  } catch (error) {
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// Función para generar un token JWT
+function generateJWTToken(user) {
+  const payload = {
+    sub: user._id,
+    username: user.username, // Puedes agregar más información al payload si es necesario
+  };
+  const token = jwt.sign(payload, "dsfwswvwse", { expiresIn: "1h" });
+  return token;
+}
+passport.use(
+  "current",
+  new CurrentStrategy((req, done) => {
+    const token = req.cookies.token; // Suponemos que el token se almacena en una cookie llamada "token"
+
+    if (!token) {
+      return done(null, false, { message: "No se proporcionó un token" });
+    }
+
+    // Verifica el token y obtén el usuario
+    jwt.verify(token, "dsfwswvwse", (err, user) => {
+      if (err) {
+        return done(null, false, { message: "Token no válido" });
+      }
+      return done(null, user);
+    });
   })
 );
 

@@ -39,4 +39,13 @@ router.post("/signup", async (req, res) => {
   res.redirect("/profile");
 });
 
+// Ruta para obtener el usuario actual
+router.get(
+  "/current",
+  passport.authenticate("current", { session: false }),
+  (req, res) => {
+    res.json(req.user);
+  }
+);
+
 export default router;
