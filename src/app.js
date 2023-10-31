@@ -28,44 +28,7 @@ const __dirname = path.dirname(__filename);
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Conectar a MongoDB
-mongoose.connect(
-  "mongodb+srv://nahuelxd:ej118BPMqH9QEr09@cluster0.i6cgahd.mongodb.net/?retryWrites=true&w=majority",
-  {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  }
-);
-
-// Middleware para analizar cookies
-app.use(cookieParser());
-
-// Middleware de Passport
-app.use(passport.initialize());
-
-// express-session
-app.use(
-  session({
-    store: MongoStore.create({
-      mongoUrl:
-        "mongodb+srv://nahuelxd:ej118BPMqH9QEr09@cluster0.i6cgahd.mongodb.net/?retryWrites=true&w=majority",
-      ttl: 100,
-    }),
-    secret: "3rsaefw3f3q2ed",
-    resave: false,
-    saveUninitialized: false,
-  })
-);
-
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "Error de conexión a MongoDB:"));
-db.once("open", () => {
-  console.log("Conexión exitosa a MongoDB");
-});
-app.get("/products.js", (req, res) => {
-  res.setHeader("Content-Type", "application/javascript");
-  res.sendFile(__dirname + "/views/scripts/products.js");
-});
+dotenv.config();
 
 // Configurar Handlebars
 const hbs = exphbs.create({ extname: "hbs" });
@@ -129,35 +92,6 @@ app.get("/", async (req, res) => {
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Escuchar conexiones de Socket.io
-io.on("connection", (socket) => {
-  console.log("A user connected");
-
-  // Manejar los mensajes del chat
-  socket.on("chat message", async (messageData) => {
-    try {
-      // Crear un nuevo documento de mensaje con los datos recibidos
-      const newMessage = new MessageModel({
-        correo: messageData.correo,
-        message: messageData.message,
-      });
-
-      // Guardar el mensaje en la base de datos MongoDB
-      await newMessage.save();
-
-      // Emitir el mensaje a todos los clientes conectados
-      io.emit("chat message", newMessage);
-    } catch (error) {
-      console.error("Error al guardar el mensaje:", error);
-    }
-  });
-
-  // Manejar la desconexión del usuario
-  socket.on("disconnect", () => {
-    console.log("A user disconnected");
-  });
-});
-
 app.get("/chat", async (req, res) => {
   try {
     // Consulta la colección "messages" en MongoDB para obtener los mensajes
@@ -191,40 +125,6 @@ app.post("/api/products/add-to-cart/:productId", async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor." });
   }
 });
-
-// Configura Passport
-passport.use(
-  new LocalStrategy(async (username, password, done) => {
-    const user = await UserModel.findOne({ username });
-    if (!user) return done(null, false);
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) return done(null, false);
-    return done(null, user);
-  })
-);
-
-passport.use(
-  new GitHubStrategy(
-    {
-      clientID: "f1e8bd1453fb0788068c",
-      clientSecret: "228c2a1afec65d3ce88b22d4b28c6378d4614fcf",
-      callbackURL: "http://localhost:8080/profile",
-    },
-    (accessToken, refreshToken, profile, done) => {}
-  )
-);
-
-passport.serializeUser((user, done) => {
-  done(null, user._id);
-});
-
-passport.deserializeUser(async (id, done) => {
-  const user = await UserModel.findById(id);
-  done(null, user);
-});
-
-app.use(passport.initialize());
-app.use(passport.session());
 
 // Rutas para autenticación
 app.post(
@@ -299,7 +199,7 @@ passport.deserializeUser(async (id, done) => {
 // Ruta para iniciar sesión con Passport (estrategia local)
 app.post("/login", passport.authenticate("local"), (req, res) => {
   // En este punto, el usuario se ha autenticado con éxito
-  // Puedes generar un token JWT y enviarlo como respuesta si lo deseas
+  // Puedes generar un token JWT y enviarlo como respuesta
   const token = generateJWTToken(req.user);
   res.json({ token });
 });
@@ -312,7 +212,7 @@ app.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await UserModel.create({ username, password: hashedPassword });
 
-    // Puedes generar un token JWT y enviarlo como respuesta si lo deseas
+    // Puedes generar un token JWT y enviarlo como respuesta
     const token = generateJWTToken(user);
     res.json({ token });
   } catch (error) {
@@ -324,7 +224,7 @@ app.post("/signup", async (req, res) => {
 function generateJWTToken(user) {
   const payload = {
     sub: user._id,
-    username: user.username, // Puedes agregar más información al payload si es necesario
+    username: user.username,
   };
   const token = jwt.sign(payload, "dsfwswvwse", { expiresIn: "1h" });
   return token;
@@ -332,7 +232,7 @@ function generateJWTToken(user) {
 passport.use(
   "current",
   new CurrentStrategy((req, done) => {
-    const token = req.cookies.token; // Suponemos que el token se almacena en una cookie llamada "token"
+    const token = req.cookies.token;
 
     if (!token) {
       return done(null, false, { message: "No se proporcionó un token" });
