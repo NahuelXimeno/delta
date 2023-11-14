@@ -1,5 +1,7 @@
 import express from "express";
 import { CartModel } from "../dao/models/cart.model.js";
+import { authorize } from "../middlewares/authorize.js";
+import TicketModel from "../dao/models/ticket.model.js";
 
 const router = express.Router();
 
@@ -89,7 +91,7 @@ router.delete("/:cid/products/:pid", async (req, res) => {
 });
 
 // PUT: Actualizar el carrito con un arreglo de productos
-router.put("/:cid", async (req, res) => {
+router.put("/:cid", authorize(["user"]), async (req, res) => {
   const cartId = req.params.cid;
   const newProducts = req.body.products;
 
@@ -171,5 +173,36 @@ router.delete("/:cid", async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor." });
   }
 });
+// Ruta para la compra del carrito y generación de ticket
+router.post("/api/carts/:cid/purchase", authorize("user"), async (req, res) => {
+  try {
+    const cartId = req.params.cid;
 
+    // Obtener el carrito por su ID
+    const cart = await CartModel.findById(cartId);
+
+    if (!cart) {
+      return res.status(404).json({ error: "Carrito no encontrado." });
+    }
+
+    // Calcular el precio total sumando los precios de los productos en el carrito
+    const totalAmount = cart.products.reduce((total, product) => {
+      return total + product.price * product.quantity;
+    }, 0);
+
+    // Utilizar el servicio de Tickets para generar un ticket con los datos de la compra
+    const ticket = new TicketModel({
+      amount: totalAmount,
+      purchaser: req.user.email,
+    });
+
+    await ticket.save();
+
+    // Devolver el ticket generado
+    res.json(ticket);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
 export default router;

@@ -74,7 +74,7 @@ router.get("/", async (req, res) => {
 });
 
 // Crear un nuevo producto
-router.post("/products", async (req, res) => {
+router.post("/products", authorize(["admin"]), async (req, res) => {
   try {
     const {
       title,
@@ -140,25 +140,29 @@ router.get("/products/:productId", async (req, res) => {
 });
 
 // Eliminar un producto por su ID
-router.delete("/products/:productId", async (req, res) => {
-  const productId = req.params.productId;
+router.delete(
+  "/products/:productId",
+  authorize(["admin"]),
+  async (req, res) => {
+    const productId = req.params.productId;
 
-  try {
-    const deletedProduct = await ProductModel.findByIdAndDelete(productId);
+    try {
+      const deletedProduct = await ProductModel.findByIdAndDelete(productId);
 
-    if (!deletedProduct) {
-      return res.status(404).send("Producto no encontrado");
+      if (!deletedProduct) {
+        return res.status(404).send("Producto no encontrado");
+      }
+
+      res.send("Producto eliminado exitosamente");
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Error interno del servidor." });
     }
-
-    res.send("Producto eliminado exitosamente");
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error interno del servidor." });
   }
-});
+);
 
 // Actualizar un producto por su ID
-router.put("/products/:productId", async (req, res) => {
+router.put("/products/:productId", authorize(["admin"]), async (req, res) => {
   const productId = req.params.productId;
   const updatedProductData = req.body;
 

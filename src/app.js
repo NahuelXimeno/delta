@@ -30,6 +30,22 @@ const io = new Server(server);
 
 dotenv.config();
 
+// Factory para obtener el DAO seleccionado
+const getDAO = (daoType) => {
+  switch (daoType) {
+    case "user":
+      return UserModel;
+    case "product":
+      return ProductModel;
+    case "cart":
+      return CartModel;
+    case "message":
+      return MessageModel;
+    default:
+      throw new Error("DAO no válido");
+  }
+};
+
 // Configurar Handlebars
 const hbs = exphbs.create({ extname: "hbs" });
 app.engine("hbs", hbs.engine);
@@ -92,7 +108,7 @@ app.get("/", async (req, res) => {
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/chat", async (req, res) => {
+app.get("/chat", authorize(["user"]), async (req, res) => {
   try {
     // Consulta la colección "messages" en MongoDB para obtener los mensajes
     const messages = await MessageModel.find().lean();
@@ -100,7 +116,7 @@ app.get("/chat", async (req, res) => {
     // Renderiza la vista de chat y pasa los mensajes como datos
     res.render("chat", { messages });
   } catch (error) {
-    console.error("Error al obtener mensajes:", error); // Agrega esta línea para ver el error en la consola del servidor
+    console.error("Error al obtener mensajes:", error);
     res.status(500).json({ error: "Error interno del servidor." });
   }
 });
