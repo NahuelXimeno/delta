@@ -15,6 +15,10 @@ import mongoose from "mongoose";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import { Strategy as CurrentStrategy } from "passport-current";
+import mockRouter from "../src/Mock.js";
+import { errorHandler } from "../src/error/ErrorHandler.js";
+import compression from "compression";
+import { logger } from "../src/logger.js";
 
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
@@ -56,7 +60,12 @@ app.use("/api/products", ProductRouter);
 app.use("/api/carts", CartRouter);
 app.use("/api/messages", MessageRouter);
 app.use("/api", SessionRouter);
-
+app.use("/api", mockRouter);
+app.use(compression());
+app.use((err, req, res, next) => {
+  logger.error(`Error en la aplicación: ${err.message}`);
+  errorHandler(err, req, res); // Puedes definir tu propio manejador de errores
+});
 // Ruta para mostrar la lista de productos
 app.get("/products", async (req, res) => {
   try {
@@ -93,13 +102,27 @@ app.get("/realtimeproducts", async (req, res) => {
   }
 });
 
+app.get("/loggerTest", (req, res) => {
+  logger.debug("Mensaje de debug");
+  logger.http("Mensaje de http");
+  logger.info("Mensaje de info");
+  logger.warning("Mensaje de warning");
+  logger.error("Mensaje de error");
+  logger.fatal("Mensaje fatal");
+
+  res.send(
+    "Logs enviados. Verifica la consola y el archivo errors.log si corresponde."
+  );
+});
+
 // Ruta para mostrar la vista de la página de inicio
 app.get("/", async (req, res) => {
   try {
     const products = await ProductModel.find().lean();
+    logger.info("Página de inicio cargada correctamente");
     res.render("home", { products });
   } catch (error) {
-    console.error(error);
+    logger.error(`Error al cargar la página de inicio: ${error.message}`);
     res.status(500).send("Internal Server Error");
   }
 });
@@ -122,23 +145,22 @@ app.get("/chat", authorize(["user"]), async (req, res) => {
 });
 
 app.post("/api/products/add-to-cart/:productId", async (req, res) => {
-  try {
-    // Obtener el ID del producto desde los parámetros de la URL
-    const productId = req.params.productId;
+  const productId = req.params.productId;
 
-    // Buscar el producto en la base de datos
+  try {
     const product = await ProductModel.findById(productId);
 
-    // Verificar si el producto existe y está disponible
-    if (!product || product.stock < 1) {
-      return res
-        .status(404)
-        .json({ error: "Producto no encontrado o agotado." });
+    if (!product) {
+      throw customError("PRODUCT_NOT_FOUND");
     }
-    res.json({ message: "Producto agregado al carrito con éxito." });
+
+    if (product.stock === 0) {
+      throw customError("PRODUCT_OUT_OF_STOCK");
+    }
+
+    res.json(product);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error interno del servidor." });
+    next(error); // Enviar el error al manejador de errores
   }
 });
 
