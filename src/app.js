@@ -62,6 +62,7 @@ app.use("/api/messages", MessageRouter);
 app.use("/api", SessionRouter);
 app.use("/api", mockRouter);
 app.use(compression());
+app.use("/", UsuariosRouter);
 app.use((err, req, res, next) => {
   logger.error(`Error en la aplicación: ${err.message}`);
   errorHandler(err, req, res); // Puedes definir tu propio manejador de errores
@@ -144,25 +145,35 @@ app.get("/chat", authorize(["user"]), async (req, res) => {
   }
 });
 
-app.post("/api/products/add-to-cart/:productId", async (req, res) => {
-  const productId = req.params.productId;
+app.post(
+  "/api/productos/agregar-al-carrito/:productId",
+  authorize(["premium"]),
+  async (req, res) => {
+    const productId = req.params.productId;
+    const usuario = req.user;
 
-  try {
-    const product = await ProductModel.findById(productId);
+    const producto = await ProductModel.findById(productId);
+    try {
+      const product = await ProductModel.findById(productId);
+      if (!producto) {
+        throw customError("PRODUCT_NOT_FOUND");
+      }
 
-    if (!product) {
-      throw customError("PRODUCT_NOT_FOUND");
+      if (producto.owner.equals(usuario._id) && usuario.role === "premium") {
+        return res.status(403).json({
+          error: "No se puede agregar el propio producto al carrito.",
+        });
+      }
+
+      if (product.stock === 0) {
+        throw customError("PRODUCT_OUT_OF_STOCK");
+      }
+      owner: usuario._id, res.json(product);
+    } catch (error) {
+      next(error); // Enviar el error al manejador de errores
     }
-
-    if (product.stock === 0) {
-      throw customError("PRODUCT_OUT_OF_STOCK");
-    }
-
-    res.json(product);
-  } catch (error) {
-    next(error); // Enviar el error al manejador de errores
   }
-});
+);
 
 // Rutas para autenticación
 app.post(
