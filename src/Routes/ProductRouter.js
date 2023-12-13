@@ -5,6 +5,12 @@ import { Server } from "socket.io";
 const router = express.Router();
 
 const io = new Server();
+/**
+ * @swagger
+ * tags:
+ *   name: Product
+ *   description: Operaciones relacionadas con productos.
+ */
 
 // Ruta para obtener productos en tiempo real
 router.get("/realtimeproducts", async (req, res) => {
@@ -20,7 +26,18 @@ router.get("/realtimeproducts", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
+/**
+ * @swagger
+ * /api/products:
+ *   get:
+ *     summary: Obtener la lista de productos
+ *     description: Retorna la lista de todos los productos.
+ *     responses:
+ *       200:
+ *         description: Éxito, retorna la lista de productos.
+ *       500:
+ *         description: Error interno del servidor.
+ */
 // Obtener todos los productos
 router.get("/", async (req, res) => {
   try {
@@ -120,7 +137,27 @@ router.post("/products", authorize(["admin"]), async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor." });
   }
 });
-
+/**
+ * @swagger
+ * /api/products/{productId}:
+ *   get:
+ *     summary: Obtener detalles de un producto por ID
+ *     description: Retorna los detalles de un producto específico según su ID.
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         description: ID del producto a consultar.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Éxito, retorna los detalles del producto.
+ *       404:
+ *         description: Producto no encontrado.
+ *       500:
+ *         description: Error interno del servidor.
+ */
 // Obtener un producto por su ID
 router.get("/products/:productId", async (req, res) => {
   const productId = req.params.productId;

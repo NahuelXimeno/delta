@@ -4,6 +4,25 @@ import { authorize } from "../middlewares/authorize.js";
 import TicketModel from "../dao/models/ticket.model.js";
 
 const router = express.Router();
+/**
+ * @swagger
+ * tags:
+ *   name: Cart
+ *   description: Operaciones relacionadas con el carrito de compras.
+ */
+
+/**
+ * @swagger
+ * /api/carts:
+ *   get:
+ *     summary: Obtener la lista de carritos
+ *     description: Retorna la lista de todos los carritos.
+ *     responses:
+ *       200:
+ *         description: Éxito, retorna la lista de carritos.
+ *       500:
+ *         description: Error interno del servidor.
+ */
 
 // Ruta para crear un nuevo carrito
 router.post("/", async (req, res) => {
@@ -27,7 +46,27 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor." });
   }
 });
-
+/**
+ * @swagger
+ * /api/carts/{cartId}:
+ *   get:
+ *     summary: Obtener detalles de un carrito por ID
+ *     description: Retorna los detalles de un carrito específico según su ID.
+ *     parameters:
+ *       - in: path
+ *         name: cartId
+ *         required: true
+ *         description: ID del carrito a consultar.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Éxito, retorna los detalles del carrito.
+ *       404:
+ *         description: Carrito no encontrado.
+ *       500:
+ *         description: Error interno del servidor.
+ */
 // Ruta para obtener un carrito por su ID
 router.get("/:cartId", async (req, res) => {
   const cartId = req.params.cartId;

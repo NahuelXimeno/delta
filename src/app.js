@@ -19,6 +19,8 @@ import mockRouter from "../src/Mock.js";
 import { errorHandler } from "../src/error/ErrorHandler.js";
 import compression from "compression";
 import { logger } from "../src/logger.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./swaggerConfig";
 
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
@@ -56,6 +58,7 @@ app.engine("hbs", hbs.engine);
 app.set("view engine", "hbs");
 
 // Rutas
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/products", ProductRouter);
 app.use("/api/carts", CartRouter);
 app.use("/api/messages", MessageRouter);
