@@ -1,6 +1,7 @@
 import express from "express";
 import { ProductModel } from "../dao/models/product.model.js";
 import { Server } from "socket.io";
+import { enviarCorreoUsuarioInactivo } from "../email.js";
 
 const router = express.Router();
 
@@ -188,6 +189,20 @@ router.delete(
 
       if (!deletedProduct) {
         return res.status(404).send("Producto no encontrado");
+      }
+
+      // Verificar si el usuario dueño del producto es premium
+      const usuarioPremium = await UserModel.findOne({
+        _id: deletedProduct.owner,
+        role: "premium",
+      });
+
+      if (usuarioPremium) {
+        // Enviar correo al usuario premium
+        await enviarCorreoProductoEliminado(
+          usuarioPremium.email,
+          deletedProduct.title
+        );
       }
 
       res.send("Producto eliminado exitosamente");
