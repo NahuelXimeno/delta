@@ -14,7 +14,7 @@ import path from "path";
 import mongoose from "mongoose";
 import session from "express-session";
 import MongoStore from "connect-mongo";
-import { Strategy as CurrentStrategy } from "passport-current";
+import { Strategy as CurrentStrategy } from "passport";
 import mockRouter from "../src/Mock.js";
 import { errorHandler } from "../src/error/ErrorHandler.js";
 import compression from "compression";
