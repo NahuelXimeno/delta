@@ -20,7 +20,7 @@ import { errorHandler } from "../src/error/ErrorHandler.js";
 import compression from "compression";
 import { logger } from "../src/logger.js";
 import swaggerUi from "swagger-ui-express";
-import swaggerSpec from "./swaggerConfig";
+import swaggerSpec from "./swaggerConfig.js";
 
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
