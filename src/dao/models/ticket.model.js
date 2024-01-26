@@ -22,4 +22,4 @@ const ticketSchema = new mongoose.Schema({
 
 const TicketModel = mongoose.model(ticketCollection, ticketSchema);
 
-export { TicketModel };
+export default TicketModel;
