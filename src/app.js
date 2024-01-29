@@ -22,11 +22,11 @@ import { logger } from "../src/logger.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swaggerConfig.js";
 
-const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
-const GitHubStrategy = require("passport-github").Strategy;
-const bcrypt = require("bcrypt");
-const UserModel = require("../src/dao/models/user.model.js");
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GitHubStrategy } from "passport-github";
+import bcrypt from "bcrypt";
+import { UserModel } from "../src/dao/models/user.model.js";
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
