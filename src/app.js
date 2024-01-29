@@ -22,7 +22,7 @@ import compression from "compression";
 import { logger } from "../src/logger.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swaggerConfig.js";
-import { authorize } from "./middlewares/authorize.js";
+import authorize from "./middlewares/authorize.js";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GitHubStrategy } from "passport-github";
