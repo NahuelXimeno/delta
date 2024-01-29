@@ -1,5 +1,6 @@
 import express from "express";
 import { ProductModel } from "../dao/models/product.model.js";
+import authorize from "../middlewares/authorize.js";
 import { Server } from "socket.io";
 import { enviarCorreoUsuarioInactivo } from "../email.js";
 
