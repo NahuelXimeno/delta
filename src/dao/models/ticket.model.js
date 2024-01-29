@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 const ticketCollection = "tickets";
 
 const ticketSchema = new mongoose.Schema({
