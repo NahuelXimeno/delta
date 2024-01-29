@@ -5,9 +5,10 @@ import { Server } from "socket.io";
 import ProductRouter from "./Routes/ProductRouter.js";
 import { ProductModel } from "../src/dao/models/product.model.js";
 import { CartModel } from "../src/dao/models/cart.model.js";
-import CartRouter from "./Routes/CartRouter.js";
+import userRouter from "./Routes/userRouter.js";
 import MessageRouter from "./Routes/MessageRouter.js";
 import SessionRouter from "./Routes/sessionRouter.js";
+import CartRouter from "./Routes/CartRouter.js";
 import { MessageModel } from "../src/dao/models/message.model.js";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -65,7 +66,7 @@ app.use("/api/messages", MessageRouter);
 app.use("/api", SessionRouter);
 app.use("/api", mockRouter);
 app.use(compression());
-app.use("/", UsuariosRouter);
+app.use("/", userRouter);
 app.use((err, req, res, next) => {
   logger.error(`Error en la aplicación: ${err.message}`);
   errorHandler(err, req, res); // Puedes definir tu propio manejador de errores
