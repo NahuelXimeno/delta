@@ -1,6 +1,6 @@
 import winston from "winston";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,7 +17,7 @@ const logLevels = {
 
 // Configuración del transporte para archivos de errores
 const errorTransport = new winston.transports.File({
-  filename: path.join(__dirname, "errors.log"),
+  filename: join(__dirname, "errors.log"),
   level: "error",
 });
 
