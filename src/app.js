@@ -33,7 +33,7 @@ const __dirname = path.dirname(__filename);
 
 const server = http.createServer(app);
 const io = new Server(server);
-
+import dotenv from 'dotenv';
 dotenv.config();
 
 // Factory para obtener el DAO seleccionado
