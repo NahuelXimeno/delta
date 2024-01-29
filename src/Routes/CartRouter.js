@@ -1,6 +1,6 @@
 import express from "express";
 import { CartModel } from "../dao/models/cart.model.js";
-import { authorize } from "../middlewares/authorize.js";
+import authorize from "../middlewares/authorize.js";
 import TicketModel from "../dao/models/ticket.model.js";
 
 const router = express.Router();
